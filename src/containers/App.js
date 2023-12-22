@@ -165,7 +165,7 @@ class App extends Component {
             </div>
 
             <div className="row">
-              <DisplayFact title={"The fun fact"} fact={displayFact} source={displayNum} action={}/>
+              <DisplayFact title={"The fun fact"} fact={displayFact} source={displayNum} action={() => this.textToSpeech()}/>
             </div>
             <div className="row">
               <NumInput EnterNumber={this.onEnterNumber} ChangeNumber={this.onChangeNumber}/>
