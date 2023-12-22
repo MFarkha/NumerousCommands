@@ -13,9 +13,9 @@ const TypeRadio = ({SelectType, type}) => {
 const TypesRadio = ({SelectType}) => {
     const types = ['trivia', 'math', 'year']
     return (
-        <>
-        { types.map( t => <TypeRadio key={t} SelectType={SelectType} type={t} />) }
-        </>
+        <div className="col-sm-2">
+            { types.map( t => <TypeRadio key={t} SelectType={SelectType} type={t} />) }
+        </div>
     );
 }
 

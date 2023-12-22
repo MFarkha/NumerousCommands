@@ -1,28 +1,19 @@
 import React from "react";
 
-const NumInput = ( {EnterNumber, ChangeNumber, ClickButton} ) => {
+const NumInput = ( {EnterNumber, ChangeNumber} ) => {
     return (
-      <>
-        <div className="row">
-            <div className="col-sm-3">
-              <div className="form-group">
-                <input
-                  className="form-control"
-                  type="number"
-                  name="inputnumber"
-                  placeholder="Type a number"
-                  onKeyDown={EnterNumber}
-                  onChange={ChangeNumber}
-                />
-              </div>
-            </div>
+      <div className="col-sm-2">
+        <div className="form-group">
+          <input
+            className="form-control"
+            type="number"
+            name="inputnumber"
+            placeholder="number"
+            onKeyDown={EnterNumber}
+            onChange={ChangeNumber}
+          />
         </div>
-        <div className="row">
-          <div className="col-md-8">
-            <button type="button" className="btn btn-info btn-round" onClick={ClickButton}>Request!</button>
-          </div>
-        </div>
-      </>
+      </div>
     );
 }
 
