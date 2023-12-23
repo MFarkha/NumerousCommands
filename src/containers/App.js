@@ -2,11 +2,11 @@ import React, { Component } from 'react';
 import NumInput from '../components/NumInput';
 import DisplayFact from '../components/DisplayFact';
 import TypesRadio from '../components/TypeRadio';
+import ActionButton from '../components/ActionButton';
 // import './App.css'
 
 import { getTokenOrRefresh } from './token_util';
 import { ResultReason } from 'microsoft-cognitiveservices-speech-sdk';
-import ActionButton from '../components/ActionButton';
 const speechsdk = require('microsoft-cognitiveservices-speech-sdk')
 
 class App extends Component {
@@ -18,7 +18,8 @@ class App extends Component {
         displayNum: '',
         displayText: '',
         displaySource: '',
-        player: {p: undefined, muted: false}
+        player: {p: undefined, muted: false},
+        recognizing: false
     }
   }
 
@@ -48,7 +49,7 @@ class App extends Component {
     const audioConfig = speechsdk.AudioConfig.fromDefaultMicrophoneInput();
     const recognizer = new speechsdk.SpeechRecognizer(speechConfig, audioConfig);
 
-    this.setState({displayFact: 'speak into your microphone...'});
+    this.setState({displayText: 'speak into your microphone...'});
 
     recognizer.recognizeOnceAsync(result => {
         let text;
@@ -57,7 +58,7 @@ class App extends Component {
         } else {
             text = 'ERROR: Speech was cancelled or could not be recognized. Ensure your microphone is working properly.';
         }
-        this.setState({displayFact: text});
+        this.setState({displayText: text});
     });
   }
 
@@ -114,21 +115,54 @@ class App extends Component {
     speechConfig.speechRecognitionLanguage = 'en-US';
 
     const audioConfig = speechsdk.AudioConfig.fromWavFileInput(audioFile);
-    const recognizer = new speechsdk.SpeechRecognizer(speechConfig, audioConfig);
+    const speechRecognizer = new speechsdk.SpeechRecognizer(speechConfig, audioConfig);
 
-    recognizer.recognizeOnceAsync(result => {
-        let text;
-        if (result.reason === ResultReason.RecognizedSpeech) {
-            text = `RECOGNIZED: ${result.text}`
-        } else {
-            text = 'ERROR: Speech was cancelled or could not be recognized. Ensure your microphone is working properly.';
-        }
+    this.setState({ displaySource: fileInfo, displayText: 'RECOGNIZED: ' });
 
-        this.setState({
-          displaySource: fileInfo,
-          displayText: text
-        });
-      });
+    speechRecognizer.recognizing = (s, e) => {
+      this.setState({ recognizing: true });
+    };
+
+    speechRecognizer.recognized = (s, e) => {
+      let text = this.state.displayText
+      if (e.result.reason === speechsdk.ResultReason.RecognizedSpeech) {
+          text += `${e.result.text}`
+      }
+      else if (e.result.reason === speechsdk.ResultReason.NoMatch) {
+          text = "NOMATCH: Speech could not be recognized."
+      }
+      this.setState({ displayText: text, recognizing: false });
+    };
+    speechRecognizer.canceled = (s, e) => {
+      let text = `CANCELED: Reason=${e.reason}, Text=${e.result.text}`;
+      if (e.reason === speechsdk.CancellationReason.Error) {
+          console.log(`"CANCELED: ErrorCode=${e.errorCode}`);
+          console.log(`"CANCELED: ErrorDetails=${e.errorDetails}`);
+          console.log("CANCELED: Did you set the speech resource key and region values?");
+      }
+      this.setState({ displayText: text, recognizing: false });
+      speechRecognizer.stopContinuousRecognitionAsync();
+    };
+    speechRecognizer.sessionStopped = (s, e) => {
+      console.log("Session stopped")
+      speechRecognizer.stopContinuousRecognitionAsync();
+    };
+    speechRecognizer.startContinuousRecognitionAsync();
+
+
+    // recognizer.recognizeOnceAsync(result => {
+    //     let text;
+    //     if (result.reason === ResultReason.RecognizedSpeech) {
+    //         text = `RECOGNIZED: ${result.text}`
+    //     } else {
+    //         text = 'ERROR: Speech was cancelled or could not be recognized. Ensure your microphone is working properly.';
+    //     }
+
+    //     this.setState({
+    //       displaySource: fileInfo,
+    //       displayText: text
+    //     });
+    //   });
   }
 
   onSelectType = (event) => {
@@ -165,7 +199,7 @@ class App extends Component {
             </div>
 
             <div className="row">
-              <DisplayFact title={"The fun fact"} fact={displayFact} source={displayNum} action={() => this.textToSpeech()}/>
+              <DisplayFact title={"The fun fact"} fact={displayFact} source={displayNum} action={() => this.textToSpeech()} recognizing={false}/>
             </div>
             <div className="row">
               <NumInput EnterNumber={this.onEnterNumber} ChangeNumber={this.onChangeNumber}/>
@@ -173,20 +207,20 @@ class App extends Component {
             </div>
             <div className="row">
               <div className="col-sm-10">
-                <ActionButton name="Request!" iconClass="nc-icon nc-send" action={this.onClickButton}/>
-                <ActionButton name="Read!" iconClass="nc-icon nc-button-play" action={() => this.textToSpeech()}/>
+                  <ActionButton name="Request!" iconClass="nc-icon nc-send" action={this.onClickButton}/>
+                  <ActionButton name="Read!" iconClass="nc-icon nc-button-play" action={() => this.textToSpeech()}/>
               </div>
             </div>
-            <br/>
+            <div className="title">
+              <h3><small>Upload your audio file or record your speech to recognize.</small></h3>
+            </div>
             <div className="row">
-              <DisplayFact title={"The text"} fact={displayText} source={displaySource}/>
+              <DisplayFact title={"The text"} fact={displayText} source={displaySource} recognizing={this.state.recognizing}/>
               <div className="col-sm-10">
-                <input className="btn btn-primary btn-round" type="file" id="audio-file" accept='audio/wav' onChange={ (e) => this.onClickAudioFileButton(e) } style={{display: "none"}} />
-                <button type="button" className="btn btn-primary btn-round"><i className="nc-icon nc-cloud-upload-94"></i><label htmlFor="audio-file" >Convert!</label></button>
-
-                <ActionButton name="Listen!" iconClass="nc-icon nc-button-power" action={() => this.sttFromMic()}/>
-                <ActionButton name="Pause/Resume!" iconClass="nc-icon nc-button-pause" action={() => this.handleMute()}/>
-
+                  <input className="btn btn-primary btn-round" type="file" id="audio-file" accept='audio/wav' onChange={ (e) => this.onClickAudioFileButton(e) } style={{display: "none"}} />
+                  <button type="button" className="btn btn-primary btn-round"><i className="nc-icon nc-cloud-upload-94"></i><label htmlFor="audio-file" >Upload!</label></button>
+                  <ActionButton name="Listen!" iconClass="nc-icon nc-button-power" action={() => this.sttFromMic()}/>
+                  <ActionButton name="Pause/Resume" iconClass="nc-icon nc-button-pause" action={() => this.handleMute()}/>
               </div>
             </div>
 
